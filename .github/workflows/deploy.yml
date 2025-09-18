@@ -1,0 +1,45 @@
+name: Deploy Streamlit App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Create static build
+      run: |
+        mkdir -p build
+        echo '<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>COMPRESS XML Parser</title>
+            <meta http-equiv="refresh" content="0; url=https://compress-xml-parser.streamlit.app">
+        </head>
+        <body>
+            <p>Redirecting to <a href="https://compress-xml-parser.streamlit.app">COMPRESS XML Parser App</a>...</p>
+        </body>
+        </html>' > build/index.html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build
