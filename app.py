@@ -22,6 +22,33 @@ def parse_section(root, section_tag):
     return pd.DataFrame(records) if records else None
 
 
+def parse_dataform(root):
+    """dataForm 내의 formData를 파싱하여 DataFrame으로 변환"""
+    dataform_elements = root.findall(".//dataForm/formData")
+    records = []
+
+    for elem in dataform_elements:
+        if elem.text and elem.text.strip():
+            lines = elem.text.strip().split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and '=' in line and line.startswith('%') and line.count('%') >= 2:
+                    # %KEY%=VALUE 형식 파싱
+                    key_end = line.find('%', 1)
+                    if key_end > 0:
+                        key = line[1:key_end]
+                        value = line[key_end + 2:] if len(line) > key_end + 2 else ""
+
+                        record = {
+                            "Key": key,
+                            "Value": value,
+                            "Raw_Line": line
+                        }
+                        records.append(record)
+
+    return pd.DataFrame(records) if records else None
+
+
 def compress_xml_to_excel(xml_bytes):
     """XML 파일을 파싱해 Excel 바이트 객체 반환"""
     tree = ET.parse(xml_bytes)
@@ -44,6 +71,11 @@ def compress_xml_to_excel(xml_bytes):
             df = parse_section(root, sec)
             if df is not None and not df.empty:
                 df.to_excel(writer, sheet_name=sec[:30], index=False)
+
+        # dataForm 섹션 추가
+        df_dataform = parse_dataform(root)
+        if df_dataform is not None and not df_dataform.empty:
+            df_dataform.to_excel(writer, sheet_name="DataForm_Details", index=False)
 
         # All_Data 시트 (전체 구조)
         all_records = []
